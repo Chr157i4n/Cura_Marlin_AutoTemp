@@ -2,20 +2,12 @@
 # Author:   Christian Köhlke
 # Date:     July 01, 2019
 
-# Description:  This plugin will allow you to create calibration GCode for
-#               testing various values for Junction Deviation on marlin-2.0.x
-#               this plugin should be used alongside the attached test model
-#               as can be found on Thingiverse https://www.thingiverse.com/thing:3463159
+# Description:  this postprocessing-script can be used in cura to enable the AutoTemp function of Marlin
 
-import re #To perform the search and replace.
 
 from ..Script import Script
 from UM.Application import Application
 
-##  Performs a search-and-replace on all g-code.
-#
-#   Due to technical limitations, the search can't cross the border between
-#   layers.
 class Autotemp(Script):
     def __init__(self):
         super().__init__()
