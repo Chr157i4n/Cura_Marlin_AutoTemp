@@ -1,9 +1,29 @@
 # Cura PostProcessingPlugin
 # Author:   Christian Köhlke
-# Date:     July 01, 2019
-
-# Description:  this postprocessing-script can be used in cura to enable the AutoTemp function of Marlin
-
+# Date:     July 03, 2019
+#
+#a postprocessing script for cura to use the Marlin AutoTemp Feature
+#
+#put this script to your Cura scripts folder, like: "C:\Users\USERNAME\AppData\Roaming\cura\4.1\scripts" and restart Cura.
+#then you can add this script as a postprocessing script in Cura. you can change the max Temperature and the factor, how strong this takes effect.
+#you can deactivate this script for the last layer, to prevent the function to be active after print. then the function will be deactivated, when the temperature is
+#set to zero after the print finished
+#
+#    Automatic Temperature: 
+#The hotend target temperature is calculated by all the buffered lines of gcode. The maximum buffered steps/sec of the extruder motor is called "se".
+#Start autotemp mode with M109 S B F The target temperature is set to mintemp+factorse[steps/sec] and is limited by mintemp and maxtemp.
+#Turn this off by executing M109 without F Also, if the temperature is set to a value below mintemp, it will not be changed by autotemp.
+#On an Ultimaker, some initial testing worked with M109 S215 B260 F1 in the start.gcode
+#
+#
+#
+#
+#   How it works
+#
+#   this script searches for M104 and M109 in the G-Code and adds an B... F... (like B245 F1) after the normal S temperature
+#
+#   M104 is to set the hotend temperature without waiting for it
+#   M109 sets the hotend temperature and waits, untils the temperature is reached
 
 from ..Script import Script
 from UM.Application import Application
@@ -27,6 +47,13 @@ class Autotemp(Script):
                     "type": "bool",
                     "default_value": true
                 },
+		"activeinlastlayer":
+                {
+                    "label": "activate Autotemp in last Layer",
+                    "description": "When enabled, the AutoTemp function is also used in the last layer. Then it is also active after the print and you will probably have problem switching the temperature manually.",
+                    "type": "bool",
+                    "default_value": false
+                },
                 "maxtemperature":
                 {
                     "label": "max Temperature",
@@ -41,7 +68,7 @@ class Autotemp(Script):
                 "factor":
                 {
                     "label": "Factor",
-                    "description": "the factor, how much the autotemp function ",
+                    "description": "the factor, how much the autotemp function takes effect",
                     "type": "float",
                     "default_value": 1,
                     "minimum_value": 0,
@@ -55,27 +82,30 @@ class Autotemp(Script):
     def execute(self, data):
         
         active = self.getSettingValueByKey("active")
+        activeinlastlayer = self.getSettingValueByKey("activeinlastlayer")
         maxtemperature = self.getSettingValueByKey("maxtemperature")
         factor = self.getSettingValueByKey("factor")
 
-  
 
         if active:
             for layer in data:
-
-
                 
                 lay_idx = data.index(layer)
                 lines = layer.split("\n")
-            
-                for line in lines:
-                    if line.startswith("M104"):
-                        lin_idx = lines.index(line)
-                        
-                        # Start autotemp mode with M109 S<mintemp> B<maxtemp> F<factor>
-                        replace_line = line + " B" + str(maxtemperature) + " F" + str(factor) + " ;inserted Autotemp function"
-                        lines.insert(lin_idx,replace_line)
-                        lines.remove(line)
+                
+                if ((activeinlastlayer==True) or ((lay_idx+1) < len(data))):
+                    
+                    for line in lines:
+                        if (line.startswith("M104") or line.startswith("M109")):
+                            lin_idx = lines.index(line)
+                            
+                            # Start autotemp mode with M109 S<mintemp> B<maxtemp> F<factor>
+                            linepart = line.split(";",1)
+                            replace_line = linepart[0] + " B" + str(maxtemperature) + " F" + str(factor) + " ;inserted Autotemp function"
+                            if (len(linepart)>1):
+                                replace_line+=linepart[1]
+                            lines.insert(lin_idx,replace_line)
+                            lines.remove(line)
 
                 result = "\n".join(lines)
                 data[lay_idx] = result
