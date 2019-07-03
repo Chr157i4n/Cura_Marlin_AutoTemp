@@ -98,7 +98,7 @@ class Autotemp(Script):
                             
                             # Start autotemp mode with M109 S<mintemp> B<maxtemp> F<factor>
                             linepart = line.split(";",1)
-                            replace_line = "%s B %s F %s ;inserted Autotemp function" % (linepart[0], maxtemperature, factor)
+                            replace_line = "%s B%s F%s ;inserted Autotemp function" % (linepart[0], maxtemperature, factor)
                             if len(linepart) > 1:
                                 replace_line += linepart[1]
                             lines.insert(lin_idx, replace_line)
